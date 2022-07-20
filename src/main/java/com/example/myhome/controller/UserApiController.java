@@ -1,8 +1,11 @@
 package com.example.myhome.controller;
 
 import com.example.myhome.model.Board;
+import com.example.myhome.model.QUser;
 import com.example.myhome.model.User;
 import com.example.myhome.repository.UserRepository;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +22,37 @@ class UserApiController {
     private UserRepository repository;
 
     @GetMapping("/users")
-    List<User> all() {
-        List<User> users = repository.findAll();
-        log.debug("getBoards().size() 호출전");
-        log.debug("getBoards().size() : {}",users.get(0).getBoards().size());
-                log.debug("getBoards().size() 호출후");
+    Iterable<User> all(@RequestParam(required = false) String method, @RequestParam(required = false) String text) {
+        Iterable<User> users = null;
+        if("query".equals(method)){
+            users = repository.findByUsernameQuery(text);
+        } else if("nativeQuery".equals(method)){
+            users = repository.findByUsernameNativeQuery(text);
+        } else if("querydsl".equals(method)){
+            QUser user = QUser.user;
+            /* 조건표현 가능
+            BooleanExpression b = user.username.contains(text);
+            if(true){
+                b = b.and(user.username.eq("HI"));
+            }
+            users = repository.findAll(b);
+            */
+
+            Predicate predicate = user.username.contains(text);
+            users = repository.findAll(predicate);
+        } else if("querydslCustom".equals(method)){
+            users = repository.findByUsernameCustom(text);
+        } else if("querydslJdbc".equals(method)){
+            users = repository.findByUsernameJdbc(text);
+        } else{
+            users = repository.findAll();
+        }
+        //- FetchType.LAZY TEST용
+        //log.debug("getBoards().size() 호출전");
+        //log.debug("getBoards().size() : {}",users.get(0).getBoards().size());
+        //log.debug("getBoards().size() 호출후");
+
+
         return users;
     }
     // end::get-aggregate-root[]
